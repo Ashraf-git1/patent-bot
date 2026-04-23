@@ -1,1 +1,2 @@
-TOKEN = "test"
+import os
+TOKEN = os.getenv("TOKEN")
