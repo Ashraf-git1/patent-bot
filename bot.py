@@ -13,59 +13,71 @@ dp = Dispatcher()
 
 users = {}
 
-# 🚀 START
-@dp.message(Command("start"))
-async def start(message: types.Message):
-    users[message.from_user.id] = {
-        "score": 0,
-        "current": 0,
-        "wrong": [],
-        "mode": "all"
-    }
-
-    kb = ReplyKeyboardMarkup(
+# =======================
+# 🔹 ГЛАВНОЕ МЕНЮ
+# =======================
+def main_menu():
+    return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📚 Тренировка")],
-            [KeyboardButton(text="❌ Ошибки")],
-            [KeyboardButton(text="🎯 Экзамен")]
+            [KeyboardButton(text="📚 Варианты")],
+            [KeyboardButton(text="❌ Ошибки"), KeyboardButton(text="🎯 Экзамен")],
+            [KeyboardButton(text="🎓 Обучение"), KeyboardButton(text="👨‍💬 Админу")]
         ],
         resize_keyboard=True
     )
 
-    await message.answer("Выбери режим:", reply_markup=kb)
+# =======================
+# 🔹 МЕНЮ ВАРИАНТОВ
+# =======================
+def variants_keyboard():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="1️⃣"), KeyboardButton(text="2️⃣"), KeyboardButton(text="3️⃣")],
+            [KeyboardButton(text="4️⃣"), KeyboardButton(text="5️⃣"), KeyboardButton(text="6️⃣")],
+            [KeyboardButton(text="7️⃣"), KeyboardButton(text="8️⃣"), KeyboardButton(text="9️⃣")],
+            [KeyboardButton(text="🔟"), KeyboardButton(text="11")],
+            [KeyboardButton(text="⬅️ Назад")]
+        ],
+        resize_keyboard=True
+    )
 
+# =======================
+# 🚀 START
+# =======================
+@dp.message(Command("start"))
+async def start(message: types.Message):
+    await message.answer(
+        "🎓 Подготовка к патенту\n\nВыбери раздел:",
+        reply_markup=main_menu()
+    )
 
-# 📚 ТРЕНИРОВКА
-@dp.message(lambda message: message.text == "📚 Тренировка")
-async def training(message: types.Message):
-    users[message.from_user.id] = {
-        "score": 0,
-        "current": 0,
-        "wrong": [],
-        "mode": "all"
-    }
-    await test(message)
+# =======================
+# 📚 ВАРИАНТЫ
+# =======================
+@dp.message(lambda m: m.text == "📚 Варианты")
+async def show_variants(message: types.Message):
+    await message.answer("Выбери вариант:", reply_markup=variants_keyboard())
 
+# =======================
+# 🔙 НАЗАД
+# =======================
+@dp.message(lambda m: m.text == "⬅️ Назад")
+async def back(message: types.Message):
+    await start(message)
 
-# ❌ ОШИБКИ
-@dp.message(lambda message: message.text == "❌ Ошибки")
-async def wrong_answers(message: types.Message):
-    user = users.get(message.from_user.id)
+# =======================
+# 🔢 ВЫБОР ВАРИАНТА (ПОКА ЗАГЛУШКА)
+# =======================
+@dp.message(lambda m: m.text in ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟","11"])
+async def variant_selected(message: types.Message):
+    await message.answer(f"Ты выбрал вариант {message.text}\n(дальше подключим реальные вопросы)")
 
-    if not user or not user["wrong"]:
-        await message.answer("У тебя нет ошибок 👍")
-        return
-
-    user["current"] = 0
-    user["mode"] = "wrong"
-
-    await message.answer("🔁 Работаем над ошибками")
-    await test(message)
-
-
+# =======================
 # 🎯 ЭКЗАМЕН
-@dp.message(lambda message: message.text == "🎯 Экзамен")
+# =======================
+@dp.message(lambda m: m.text == "🎯 Экзамен")
 async def exam(message: types.Message):
+
     exam_questions = random.sample(questions, min(5, len(questions)))
 
     users[message.from_user.id] = {
@@ -77,19 +89,49 @@ async def exam(message: types.Message):
     }
 
     await message.answer("🎯 Начинаем экзамен")
-    await test(message)
+    await send_question(message)
 
+# =======================
+# ❌ ОШИБКИ
+# =======================
+@dp.message(lambda m: m.text == "❌ Ошибки")
+async def errors(message: types.Message):
+    user = users.get(message.from_user.id)
 
+    if not user or not user["wrong"]:
+        await message.answer("У тебя пока нет ошибок 👍")
+        return
+
+    user["current"] = 0
+    user["mode"] = "wrong"
+
+    await message.answer("🔁 Работаем над ошибками")
+    await send_question(message)
+
+# =======================
+# 👨‍💬 АДМИНУ
+# =======================
+@dp.message(lambda m: m.text == "👨‍💬 Админу")
+async def admin(message: types.Message):
+    await message.answer("Напиши сюда: @your_username")
+
+# =======================
+# 🎓 ОБУЧЕНИЕ (ЗАГЛУШКА)
+# =======================
+@dp.message(lambda m: m.text == "🎓 Обучение")
+async def study(message: types.Message):
+    await message.answer("🔒 Скоро будет доступно")
+
+# =======================
 # ❓ ВЫДАЧА ВОПРОСА
-@dp.message(Command("test"))
-async def test(message: types.Message):
+# =======================
+async def send_question(message: types.Message):
     user = users.get(message.from_user.id)
 
     if not user:
         await message.answer("Напиши /start")
         return
 
-    # выбор режима
     if user["mode"] == "wrong":
         q_list = user["wrong"]
     elif user["mode"] == "exam":
@@ -97,37 +139,29 @@ async def test(message: types.Message):
     else:
         q_list = questions
 
-    # конец теста
     if user["current"] >= len(q_list):
-        if user["mode"] == "exam":
-            if user["score"] >= len(q_list) - 1:
-                await message.answer(f"🎯 Экзамен СДАН\nРезультат: {user['score']}/{len(q_list)}")
-            else:
-                await message.answer(f"❌ Экзамен НЕ сдан\nРезультат: {user['score']}/{len(q_list)}")
-        else:
-            await message.answer(f"🏁 Завершено\nПравильно: {user['score']}/{len(q_list)}")
+        await message.answer(f"🏁 Завершено\nРезультат: {user['score']}/{len(q_list)}")
         return
 
     q = q_list[user["current"]]
 
-    keyboard = ReplyKeyboardMarkup(
+    kb = ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text=a)] for a in q["answers"]],
         resize_keyboard=True
     )
 
-    await message.answer(q["question"], reply_markup=keyboard)
+    await message.answer(q["question"], reply_markup=kb)
 
-
+# =======================
 # ✅ ОТВЕТ
+# =======================
 @dp.message()
 async def answer(message: types.Message):
     user = users.get(message.from_user.id)
 
     if not user:
-        await message.answer("Напиши /start")
         return
 
-    # выбор режима
     if user["mode"] == "wrong":
         q_list = user["wrong"]
     elif user["mode"] == "exam":
@@ -135,9 +169,8 @@ async def answer(message: types.Message):
     else:
         q_list = questions
 
-    # защита от ошибки
     if user["current"] >= len(q_list):
-        await message.answer("🏁 Тест уже завершён. Напиши /start")
+        await message.answer("Тест завершён. Напиши /start")
         return
 
     q = q_list[user["current"]]
@@ -150,10 +183,11 @@ async def answer(message: types.Message):
         await message.answer(f"❌ Неправильно\nПравильный: {q['correct']}")
 
     user["current"] += 1
-    await test(message)
+    await send_question(message)
 
-
+# =======================
 # 🚀 ЗАПУСК
+# =======================
 async def main():
     await dp.start_polling(bot)
 
