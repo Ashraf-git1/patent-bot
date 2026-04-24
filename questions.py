@@ -1,4 +1,4 @@
-QUESTIONS = {
+questions = {
     1: [
         {
             "question": "1. Они говорят",
