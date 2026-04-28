@@ -1,168 +1,19 @@
-from aiogram import types
+from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-import os
+from aiogram.utils import executor
+import logging
 
-questions = [
-    # 1
-    {
-        "type": "audio",
-        "audio": "audio/1-1.mp3",
-        "text": "1. Они говорят",
-        "options": ["в центре тестирования", "в автомастерской", "в магазине"],
-        "correct": "в центре тестирования"
-    },
-    # 2
-    {
-        "type": "choice",
-        "text": "2. С собой необходимо иметь",
-        "options": ["банковскую карту", "миграционную карту", "медицинскую справку"],
-        "correct": "миграционную карту"
-    },
-    # 3
-    {
-        "type": "audio",
-        "audio": "audio/1-2.mp3",
-        "text": "3. Вы можете услышать это объявление",
-        "options": ["в торговом центре", "в поликлинике", "в банке"],
-        "correct": "в торговом центре"
-    },
-    # 4
-    {
-        "type": "choice",
-        "text": "4. О потерянных вещах можно спросить",
-        "options": ["у администратора", "у покупателей", "у директора магазина"],
-        "correct": "у администратора"
-    },
-    # 5
-    {
-        "type": "choice",
-        "text": "5. Такое объявление можно прочитать\n\n«Оплачивайте проезд вовремя!»",
-        "options": ["в парке", "в самолёте", "в автобусе"],
-        "correct": "в автобусе"
-    },
-    # 6
-    {
-        "type": "choice",
-        "text": "6. Экскурсия начинается",
-        "options": ["в 10 часов", "в 14 часов", "в 12 часов"],
-        "correct": "в 10 часов"
-    },
-    # 7
-    {
-        "type": "input",
-        "text": "7. Прочитайте текст:\n\nБатыр приехал из Узбекистана. Батыр — строитель.\n\nКто Вы по профессии? Я ___",
-        "correct": "строитель"
-    },
-    # 8
-    {
-        "type": "choice",
-        "text": "8. Сегодня суббота, а мама приехала вчера, ____.",
-        "options": ["во вторник", "в пятницу", "в среду"],
-        "correct": "в пятницу"
-    },
-    # 9
-    {
-        "type": "choice",
-        "text": "9. В салоне сотовой связи я купил ____.",
-        "options": ["молоко", "телефон", "куртку"],
-        "correct": "телефон"
-    },
-    # 10
-    {
-        "type": "choice",
-        "text": "10. — Как вас зовут?\n— ____ зовут Иван.",
-        "options": ["Мне", "Я", "Меня"],
-        "correct": "Меня"
-    },
-    # 11
-    {
-        "type": "choice",
-        "text": "11. Мы приехали в Россию, ____ здесь есть работа.",
-        "options": ["потому что", "чтобы", "поэтому"],
-        "correct": "потому что"
-    },
-    # 12
-    {
-        "type": "choice",
-        "text": "12. День Победы в России отмечают",
-        "options": ["1 января", "4 ноября", "9 мая"],
-        "correct": "9 мая"
-    },
-    # 13
-    {
-        "type": "choice",
-        "text": "13. Столица Российской Федерации",
-        "options": ["Москва", "Самара", "Екатеринбург"],
-        "correct": "Москва"
-    },
-    # 14
-    {
-        "type": "choice",
-        "text": "14. Великая Отечественная война закончилась",
-        "options": ["1945", "1917", "1980"],
-        "correct": "1945"
-    },
-    # 15
-    {
-        "type": "choice",
-        "text": "15. СНГ было образовано после",
-        "options": ["1945", "1991", "1917"],
-        "correct": "1991"
-    },
-    # 16 (ФЛАГ)
-    {
-        "type": "choice",
-        "text": "16. Укажите флаг Российской Федерации",
-        "options": ["🇹🇷", "🇷🇺", "🇸🇪"],
-        "correct": "🇷🇺"
-    },
-    # 17
-    {
-        "type": "choice",
-        "text": "17. Иностранные граждане...",
-        "options": [
-            "имеют права как граждане РФ (с исключениями)",
-            "имеют все права",
-            "не имеют прав"
-        ],
-        "correct": "имеют права как граждане РФ (с исключениями)"
-    },
-    # 18
-    {
-        "type": "choice",
-        "text": "18. ВИЧ — депортация?",
-        "options": ["неверно", "верно"],
-        "correct": "верно"
-    },
-    # 19
-    {
-        "type": "choice",
-        "text": "19. Куда обращаться при преступлении?",
-        "options": ["в посольство", "в МИД", "в полицию"],
-        "correct": "в полицию"
-    },
-    # 20
-    {
-        "type": "choice",
-        "text": "20. Для учёта нужно",
-        "options": ["паспорт и миграционная карта", "только паспорт", "только карта"],
-        "correct": "паспорт и миграционная карта"
-    },
-    # 21
-    {
-        "type": "choice",
-        "text": "21. Нарушение миграции — ответственность",
-        "options": ["административная", "уголовная", "дисциплинарная"],
-        "correct": "административная"
-    },
-    # 22
-    {
-        "type": "choice",
-        "text": "22. Где регистрируют брак?",
-        "options": ["ЗАГС", "суд", "полиция"],
-        "correct": "ЗАГС"
-    }
-]
+from variant_1 import questions as variant_1_questions
+
+API_TOKEN = "ТВОЙ_ТОКЕН"
+
+logging.basicConfig(level=logging.INFO)
+
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot)
+
+# состояние пользователя
+user_data = {}
 
 
 def get_keyboard(options):
@@ -170,3 +21,84 @@ def get_keyboard(options):
     for opt in options:
         kb.add(KeyboardButton(opt))
     return kb
+
+
+# 🚀 СТАРТ
+@dp.message_handler(commands=['start'])
+async def start(msg: types.Message):
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.add("📚 Варианты")
+    await msg.answer("Выбери раздел:", reply_markup=kb)
+
+
+# 📚 ВАРИАНТЫ
+@dp.message_handler(lambda m: m.text == "📚 Варианты")
+async def variants(msg: types.Message):
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    for i in range(1, 12):
+        kb.add(str(i))
+    kb.add("⬅️ Назад")
+
+    await msg.answer("Выбери вариант:", reply_markup=kb)
+
+
+# 🎯 ВЫБОР ВАРИАНТА
+@dp.message_handler(lambda m: m.text == "1")
+async def start_variant_1(msg: types.Message):
+    user_data[msg.from_user.id] = {
+        "variant": 1,
+        "index": 0,
+        "score": 0
+    }
+    await send_question(msg)
+
+
+# 📩 ОТПРАВКА ВОПРОСА
+async def send_question(msg: types.Message):
+    data = user_data[msg.from_user.id]
+    q = variant_1_questions[data["index"]]
+
+    # аудио
+    if q["type"] == "audio":
+        if q.get("audio") and q["audio"]:
+            with open(q["audio"], "rb") as audio:
+                await bot.send_audio(msg.chat.id, audio)
+        await msg.answer(q["text"], reply_markup=get_keyboard(q["options"]))
+
+    elif q["type"] == "choice":
+        await msg.answer(q["text"], reply_markup=get_keyboard(q["options"]))
+
+    elif q["type"] == "input":
+        await msg.answer(q["text"])
+
+
+# ✅ ОБРАБОТКА ОТВЕТА
+@dp.message_handler()
+async def handle_answer(msg: types.Message):
+    if msg.from_user.id not in user_data:
+        return
+
+    data = user_data[msg.from_user.id]
+    q = variant_1_questions[data["index"]]
+
+    answer = msg.text.strip().lower()
+    correct = q["correct"].lower()
+
+    if answer == correct:
+        data["score"] += 1
+        await msg.answer("✅ Правильно")
+    else:
+        await msg.answer(f"❌ Неправильно\nПравильный: {q['correct']}")
+
+    data["index"] += 1
+
+    if data["index"] >= len(variant_1_questions):
+        await msg.answer(f"🎉 Завершено\nРезультат: {data['score']}/{len(variant_1_questions)}")
+        user_data.pop(msg.from_user.id)
+        return
+
+    await send_question(msg)
+
+
+if __name__ == "__main__":
+    executor.start_polling(dp, skip_updates=True)
