@@ -2,10 +2,12 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils import executor
 import logging
+import os
+
 
 from variant_1 import questions as variant_1_questions
 
-API_TOKEN = "8214126417:AAFI1yfJdZGTk5B-1EMuWYRFoo1R-k-gRZg"
+API_TOKEN = os.getenv("BOT_TOKEN")
 
 logging.basicConfig(level=logging.INFO)
 
