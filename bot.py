@@ -1,188 +1,172 @@
-import asyncio
-import random
-from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, FSInputFile
-from aiogram.filters import CommandStart
-from config import TOKEN
+from aiogram import types
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+import os
 
-bot = Bot(token=TOKEN)
-dp = Dispatcher()
-
-# =========================
-# СОСТОЯНИЕ ПОЛЬЗОВАТЕЛЯ
-# =========================
-users = {}
-
-# =========================
-# КНОПКИ
-# =========================
-menu_kb = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton(text="📚 Варианты")],
-        [KeyboardButton(text="🎯 Экзамен")]
-    ],
-    resize_keyboard=True
-)
-
-back_kb = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton(text="⬅️ Назад"), KeyboardButton(text="🏠 В меню")]
-    ],
-    resize_keyboard=True
-)
-
-# =========================
-# ВОПРОСЫ 1 ВАРИАНТА
-# =========================
-variant_1 = [
-    {"q": "1. Они говорят", "a": ["в центре тестирования", "в магазине"], "correct": "в центре тестирования"},
-    {"q": "2. С собой необходимо иметь", "a": ["миграционную карту", "паспорт"], "correct": "миграционную карту"},
-    
-    # АУДИО
-    {"q": "3. Прослушайте аудио", "audio": "assets/audio/1-1.mp3", "a": ["вариант 1", "вариант 2"], "correct": "вариант 1"},
-    {"q": "4. Прослушайте аудио", "audio": "assets/audio/1-1.mp3", "a": ["ответ 1", "ответ 2"], "correct": "ответ 2"},
-
-    {"q": "5. Где он работает?", "a": ["на стройке", "в офисе"], "correct": "на стройке"},
-    {"q": "6. Сколько стоит билет?", "a": ["100 рублей", "200 рублей"], "correct": "100 рублей"},
-
-    # ТЕКСТ
-    {"q": "7. Обзор Набиев приехал в Россию из Узбекистана. Он грузчик.\nКто вы по профессии?", "text": True, "correct": "грузчик"},
-
-    {"q": "8. Где вы живёте?", "a": ["в Москве", "в Самаре"], "correct": "в Москве"},
-    {"q": "9. Когда вы приехали?", "a": ["вчера", "сегодня"], "correct": "сегодня"},
-    {"q": "10. Что вы делаете?", "a": ["работаю", "отдыхаю"], "correct": "работаю"},
-    {"q": "11. Мы приехали в Россию, ___ здесь есть работа.", "a": ["потому что", "поэтому"], "correct": "потому что"},
-
-    {"q": "12. День Победы", "a": ["9 мая", "4 ноября"], "correct": "9 мая"},
-
-    {"q": "13. Столица РФ", "a": ["Москва", "Екатеринбург"], "correct": "Москва"},
-
-    # ПРОБЛЕМНЫЙ ВОПРОС — ТУТ ВСЁ НОРМАЛЬНО СДЕЛАНО
-    {"q": "14. Война закончилась", "a": ["1945", "1917", "1980"], "correct": "1945"},
-
-    # ФЛАГ
-    {"q": "15. Какая это страна?", "photo": "assets/flags/ru.png", "a": ["Россия", "Казахстан"], "correct": "Россия"},
-
-    {"q": "16. Где находится Кремль?", "a": ["Москва", "Питер"], "correct": "Москва"},
-    {"q": "17. Президент РФ", "a": ["Путин", "Байден"], "correct": "Путин"},
-    {"q": "18. Столица Узбекистана", "a": ["Ташкент", "Самарканд"], "correct": "Ташкент"},
-    {"q": "19. Валюта РФ", "a": ["рубль", "доллар"], "correct": "рубль"},
-    {"q": "20. Сколько дней в неделе?", "a": ["7", "5"], "correct": "7"},
-    {"q": "21. Какой сегодня день?", "a": ["понедельник", "вторник"], "correct": "понедельник"},
-    {"q": "22. Вы работаете?", "a": ["да", "нет"], "correct": "да"},
+questions = [
+    # 1
+    {
+        "type": "audio",
+        "audio": "audio/1-1.mp3",
+        "text": "1. Они говорят",
+        "options": ["в центре тестирования", "в автомастерской", "в магазине"],
+        "correct": "в центре тестирования"
+    },
+    # 2
+    {
+        "type": "choice",
+        "text": "2. С собой необходимо иметь",
+        "options": ["банковскую карту", "миграционную карту", "медицинскую справку"],
+        "correct": "миграционную карту"
+    },
+    # 3
+    {
+        "type": "audio",
+        "audio": "audio/1-2.mp3",
+        "text": "3. Вы можете услышать это объявление",
+        "options": ["в торговом центре", "в поликлинике", "в банке"],
+        "correct": "в торговом центре"
+    },
+    # 4
+    {
+        "type": "choice",
+        "text": "4. О потерянных вещах можно спросить",
+        "options": ["у администратора", "у покупателей", "у директора магазина"],
+        "correct": "у администратора"
+    },
+    # 5
+    {
+        "type": "choice",
+        "text": "5. Такое объявление можно прочитать\n\n«Оплачивайте проезд вовремя!»",
+        "options": ["в парке", "в самолёте", "в автобусе"],
+        "correct": "в автобусе"
+    },
+    # 6
+    {
+        "type": "choice",
+        "text": "6. Экскурсия начинается",
+        "options": ["в 10 часов", "в 14 часов", "в 12 часов"],
+        "correct": "в 10 часов"
+    },
+    # 7
+    {
+        "type": "input",
+        "text": "7. Прочитайте текст:\n\nБатыр приехал из Узбекистана. Батыр — строитель.\n\nКто Вы по профессии? Я ___",
+        "correct": "строитель"
+    },
+    # 8
+    {
+        "type": "choice",
+        "text": "8. Сегодня суббота, а мама приехала вчера, ____.",
+        "options": ["во вторник", "в пятницу", "в среду"],
+        "correct": "в пятницу"
+    },
+    # 9
+    {
+        "type": "choice",
+        "text": "9. В салоне сотовой связи я купил ____.",
+        "options": ["молоко", "телефон", "куртку"],
+        "correct": "телефон"
+    },
+    # 10
+    {
+        "type": "choice",
+        "text": "10. — Как вас зовут?\n— ____ зовут Иван.",
+        "options": ["Мне", "Я", "Меня"],
+        "correct": "Меня"
+    },
+    # 11
+    {
+        "type": "choice",
+        "text": "11. Мы приехали в Россию, ____ здесь есть работа.",
+        "options": ["потому что", "чтобы", "поэтому"],
+        "correct": "потому что"
+    },
+    # 12
+    {
+        "type": "choice",
+        "text": "12. День Победы в России отмечают",
+        "options": ["1 января", "4 ноября", "9 мая"],
+        "correct": "9 мая"
+    },
+    # 13
+    {
+        "type": "choice",
+        "text": "13. Столица Российской Федерации",
+        "options": ["Москва", "Самара", "Екатеринбург"],
+        "correct": "Москва"
+    },
+    # 14
+    {
+        "type": "choice",
+        "text": "14. Великая Отечественная война закончилась",
+        "options": ["1945", "1917", "1980"],
+        "correct": "1945"
+    },
+    # 15
+    {
+        "type": "choice",
+        "text": "15. СНГ было образовано после",
+        "options": ["1945", "1991", "1917"],
+        "correct": "1991"
+    },
+    # 16 (ФЛАГ)
+    {
+        "type": "choice",
+        "text": "16. Укажите флаг Российской Федерации",
+        "options": ["🇹🇷", "🇷🇺", "🇸🇪"],
+        "correct": "🇷🇺"
+    },
+    # 17
+    {
+        "type": "choice",
+        "text": "17. Иностранные граждане...",
+        "options": [
+            "имеют права как граждане РФ (с исключениями)",
+            "имеют все права",
+            "не имеют прав"
+        ],
+        "correct": "имеют права как граждане РФ (с исключениями)"
+    },
+    # 18
+    {
+        "type": "choice",
+        "text": "18. ВИЧ — депортация?",
+        "options": ["неверно", "верно"],
+        "correct": "верно"
+    },
+    # 19
+    {
+        "type": "choice",
+        "text": "19. Куда обращаться при преступлении?",
+        "options": ["в посольство", "в МИД", "в полицию"],
+        "correct": "в полицию"
+    },
+    # 20
+    {
+        "type": "choice",
+        "text": "20. Для учёта нужно",
+        "options": ["паспорт и миграционная карта", "только паспорт", "только карта"],
+        "correct": "паспорт и миграционная карта"
+    },
+    # 21
+    {
+        "type": "choice",
+        "text": "21. Нарушение миграции — ответственность",
+        "options": ["административная", "уголовная", "дисциплинарная"],
+        "correct": "административная"
+    },
+    # 22
+    {
+        "type": "choice",
+        "text": "22. Где регистрируют брак?",
+        "options": ["ЗАГС", "суд", "полиция"],
+        "correct": "ЗАГС"
+    }
 ]
 
-# =========================
-# СТАРТ
-# =========================
-@dp.message(CommandStart())
-async def start(message: Message):
-    await message.answer("🏠 Главное меню", reply_markup=menu_kb)
 
-# =========================
-# ВАРИАНТЫ
-# =========================
-@dp.message(F.text == "📚 Варианты")
-async def variants_menu(message: Message):
-    kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text=str(i)) for i in range(1, 6)],
-                  [KeyboardButton(text=str(i)) for i in range(6, 12)],
-                  [KeyboardButton(text="⬅️ Назад"), KeyboardButton(text="🏠 В меню")]],
-        resize_keyboard=True
-    )
-    await message.answer("Выбери вариант:", reply_markup=kb)
-
-# =========================
-# СТАРТ ВАРИАНТА
-# =========================
-@dp.message(F.text.in_([str(i) for i in range(1, 12)]))
-async def start_variant(message: Message):
-    user_id = message.from_user.id
-
-    users[user_id] = {
-        "q": 0,
-        "score": 0,
-        "data": variant_1
-    }
-
-    await message.answer(f"Вариант {message.text} начат")
-    await send_question(message, user_id)
-
-# =========================
-# ОТПРАВКА ВОПРОСА
-# =========================
-async def send_question(message: Message, user_id):
-    user = users[user_id]
-    questions = user["data"]
-
-    if user["q"] >= len(questions):
-        await message.answer(f"🏁 Завершено\nРезультат: {user['score']}/{len(questions)}", reply_markup=menu_kb)
-        return
-
-    q = questions[user["q"]]
-
-    # аудио
-    if "audio" in q:
-        await message.answer_audio(FSInputFile(q["audio"]))
-
-    # фото
-    if "photo" in q:
-        await message.answer_photo(FSInputFile(q["photo"]))
-
-    # текстовый вопрос
-    if q.get("text"):
-        await message.answer(q["q"] + "\n✍️ Напиши ответ", reply_markup=back_kb)
-        return
-
-    # кнопки
-    kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text=ans)] for ans in q["a"]] +
-                 [[KeyboardButton(text="⬅️ Назад"), KeyboardButton(text="🏠 В меню")]],
-        resize_keyboard=True
-    )
-
-    await message.answer(q["q"], reply_markup=kb)
-
-# =========================
-# ОБРАБОТКА ОТВЕТА
-# =========================
-@dp.message()
-async def handle_answer(message: Message):
-    user_id = message.from_user.id
-
-    if message.text == "🏠 В меню":
-        await message.answer("🏠 Главное меню", reply_markup=menu_kb)
-        return
-
-    if user_id not in users:
-        return
-
-    user = users[user_id]
-    questions = user["data"]
-
-    if user["q"] >= len(questions):
-        return
-
-    q = questions[user["q"]]
-    answer = message.text.lower().strip()
-
-    correct = q["correct"].lower()
-
-    if answer == correct:
-        user["score"] += 1
-        await message.answer("✅ Правильно")
-    else:
-        await message.answer(f"❌ Неправильно\nПравильный: {q['correct']}")
-
-    user["q"] += 1
-    await send_question(message, user_id)
-
-# =========================
-# ЗАПУСК
-# =========================
-async def main():
-    print("БОТ ЗАПУЩЕН")
-    await dp.start_polling(bot)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+def get_keyboard(options):
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    for opt in options:
+        kb.add(KeyboardButton(opt))
+    return kb
