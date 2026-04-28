@@ -7,7 +7,7 @@ import os
 
 from variant_1 import questions as variant_1_questions
 
-API_TOKEN = os.getenv("BOT_TOKEN")
+API_TOKEN = os.getenv("TOKEN")
 
 logging.basicConfig(level=logging.INFO)
 
