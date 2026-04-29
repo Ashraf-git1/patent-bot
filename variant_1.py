@@ -126,7 +126,7 @@ questions = [
         {"url": "https://flagcdn.com/w320/se.png", "text": "Швеция"}
     ],
     "correct": "Россия"
-}
+},
     # 17
     {
         "type": "choice",
